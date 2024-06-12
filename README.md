@@ -4,17 +4,17 @@ Repositório destinado ao Trabalho 2 de Fundamentos de Redes de Computadores
 
 ## Integrantes
 
-|              Foto              | Matrícula |  Github  |
-| :----------------------------: | :-------: | :------: |
-|      Adne Moreira Moretti      |           |          |
-| Cícero Barrozo Fernandes Filho | 190085819 | ciceroff |
-|        Gabriel Oliveira        |           |          |
-|       Leonardo Vitoriano       |           |          |
+| Nome                           | Matrícula |
+| ------------------------------ | --------- |
+| Adne Moreira Moretti           | 200013181 |
+| Cícero Barrozo Fernandes Filho | 190085819 |
+| Gabriel Oliveira               | 190045817 |
+| Leonardo Vitoriano             | 201000379 |
 
 Primeiros passos para configuração da rede
 Primeiramente foi instalado o Freebsd na máquina do LDS;
 
-### rc.conf
+### Configuração do rc.conf
 
 Abrir o rc.conf e foi realizada a configuração inicial da rede, segue como o arquivo ficou, vale lembrar que as interfaces de rede são: em0 para WAN e rl0 para LAN.
 
@@ -44,7 +44,7 @@ Após alterar esse arquivo, é necessário reiniciar as interfaces de redes, par
 service netif restart && service routing restart
 ```
 
-### pf.conf
+### Configuração do pf.conf
 
 Depois foi criado o arquivo pf.conf no caminho `/etc/pf.c
 fn`:
@@ -68,40 +68,46 @@ pass out on $ext_if from any to any
 
 ### Atualizar configurações do package filter
 
-esfazereiniciar o Após fazer alterações de configurações no package filter, precpf.conf com os seguintes comandos:
+Após fazer alterações de configurações no package filter, reinicie o pf.conf com os seguintes comandos:
 
 ```
-pfctl -f pf.conisamos ro### Instalar o isc-dhcpd44
+pfctl -f pf.conf
+pfctl -e
 
+```
 
+### Instalação do servidor dhcp
 
-### Instalar o dhcpd.conf feita a instalação do pacote isc-dhcpd44, que é uma biblioteca de uma versão específica de um servidor dhcp para prover configurações de rede a dispositivos;
+Instalar o isc-dhcpd44, que é uma biblioteca de uma versão específica de um servidor dhcp para prover configurações de rede a dispositivos;
 
-
+```
 pkg install isc-dhcpd44
-
-Instalação do dhcpd.conf
-
-
-``
+```
 
 ### dhcpd.conf
+
+Após a instalação, rode o comando pra iniciar o servidor:
+
+```
+service isc-dhcpd start
+```
 
 No arquivo `dhcpd.conf`, que fica no caminho `/usr/local/etc/dhcpd.conf foi alterado:
 
 ```
+authoritative;
+ddns-update-style none;
 
-subnet 10.0.0.0 netmask 255.255.0.0 (
-range 10.0.0.100 10.0.0.200;
-option routers 10.0.0.1;
-option domain
-name-servers 192.168.133.1;
-)
+subnet 10.0.0.0 netmask 255.255.0.0 {
+   range 10.0.0.100 10.0.0.200;
+   option routers 10.0.0.1;
+   option domain-name-servers 192.168.133.1;
+}
 
-host client-machine (
-hardware ethernet C8:4B:D6:13:C7:BA;
-fixed-addresss 10.0.0.150;
-)
+host client-machine {
+   hardware ethernet C8:4B:D6:13:C7:BA;
+   fixed-addresss 10.0.0.150;
+}
 
 ```
 
@@ -109,16 +115,78 @@ Essas alterações foram feitas para que a máquina 10.0.0.1 funcionasse como um
 
 Além disso, também foi setado um host, que seria a máquina de teste de um dos integrantes do grupo, para a máquina com o MAC address descrito em hardware ethernet, para essa máquina específica foi setado o IP 10.0.0.150;
 
-```
+### dhcpd.leases
 
-# dhcpd.leases
-
-# Testes de conexão na rede
+O histórico de leases do servidor dhcp são salvos em um arquivo dentro do var/db/dhcpd, o arquivo dhcpd.leases
 
 ```
+root@freedsd:/var/d/dhcpd # cat dhcpd.leases
+# The format of this file is documented in the dhopd. leases(5) manual page. -
+dhopd. leases. 1717766712 dhcpd.leases™
+# This lease file was written by isc-dhop-4.4.3-P1
+# authoring-byte-order entry is generated, DO NOT DELETE
+authoring-byte-order little-endian;
+
+lease 10.0.0.100 {
+   starts 1 2024/06/10 11:50:10;
+   ends 1 2024/05/10 12:00:10;
+   tstp 1 2024/06/10 12:00:10;
+   cltt 1 2024/06/10 11:50:18；
+   binding state free;
+   nardware eternet ocibelalicziazigas
+   uid "\377VPM\230\0001002\000\000\253\021 Cm\235; \374\253\375\015":
+}
+
+lease 10.0.0.101 {
+   starts 1 2024/06/10 12:36:49;
+   ends 1 2024/05/10 12:40:25;
+   tstp 1 2024/06/10 12:40:25;
+   citt. 1 2024/06/10 12:36:49;
+   binding state free;
+   hardware ethernet c8:4:06:13:07:ba;
+   uid "\000\001\000\001-\365\274U\000\010TIpx" ;
+}
 
 ```
 
-```
+### Testes de conexão na rede
+
+Para testes de conexão na rede local configurada, os seguintes comandos foram executados:
+
+1. Da máquina de teste para a máquina do LDS:
 
 ```
+ping 10.0.0.1
+
+```
+
+2. Da máquina do LDS para a máquina local:
+
+```
+ping 10.0.0.150
+
+```
+
+Que foi o IP setado para a máquina de teste pelo DHCP;
+
+3. Da máquina de teste para o roteador:
+
+```
+ping 192.168.133.1
+```
+
+4. Utilização do tcpdump para testar e analisar os logs do UDP com DHCP:
+
+```
+pkg install tcpdump
+```
+
+E para verificar os logs da captura de pacotes via UDP:
+
+```
+tcpdump -ni rl0 udp
+```
+
+Por meio disso, foi possível visualizar o host da máquina de teste ao conectar o cabo de que a máquina rede, onde o servidor dhcp identifica a entrada da máquina e coloca o ip 10.0.0.150 para a máquina. É um teste interessante, pois atualiza o log no momento em que a máquina entra e sai da rede local.
+
+![tcpdump2](/fotos/tcpdump2.jpeg)
