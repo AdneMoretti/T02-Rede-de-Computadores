@@ -11,6 +11,13 @@ Repositório destinado ao Trabalho 2 de Fundamentos de Redes de Computadores
 | Gabriel Oliveira               | 190045817 |
 | Leonardo Vitoriano             | 201000379 |
 
+## Informações iniciais
+
+- Sistema operacional utilizado: Freebsd
+- Aplicações utilizadas: isc-dhcp-server, vim, tmux, tcpdump;
+
+## Vamos lá!
+
 Primeiros passos para configuração da rede
 Primeiramente foi instalado o Freebsd na máquina do LDS;
 
@@ -18,7 +25,7 @@ Primeiramente foi instalado o Freebsd na máquina do LDS;
 
 Abrir o rc.conf e foi realizada a configuração inicial da rede, segue como o arquivo ficou, vale lembrar que as interfaces de rede são: em0 para WAN e rl0 para LAN.
 
-```
+```bash
 clear_tmp_enable="YES"
 hostname="freebsd"
 keymap="br.kdb"
@@ -40,7 +47,7 @@ pflog_enable="YES"
 
 Após alterar esse arquivo, é necessário reiniciar as interfaces de redes, para isso, rode o seguinte comando:
 
-```
+```bash
 service netif restart && service routing restart
 ```
 
@@ -50,7 +57,7 @@ Depois foi criado o arquivo pf.conf no caminho `/etc/pf.c
 fn`:
 O package Filter é um firewall e filtro de pacotes integrado ao FreeBSD, Nesse trabalho o Package Filter é usado para criar a tabela NAT.
 
-```
+```bash
 ext_if="em0"
 int_if="rl0"
 
@@ -70,7 +77,7 @@ pass out on $ext_if from any to any
 
 Após fazer alterações de configurações no package filter, reinicie o pf.conf com os seguintes comandos:
 
-```
+```bash
 pfctl -f pf.conf
 pfctl -e
 
@@ -80,21 +87,21 @@ pfctl -e
 
 Instalar o isc-dhcpd44, que é uma biblioteca de uma versão específica de um servidor dhcp para prover configurações de rede a dispositivos;
 
-```
+```bash
 pkg install isc-dhcpd44
 ```
 
-### dhcpd.conf
+### Configuração dhcpd.conf
 
 Após a instalação, rode o comando pra iniciar o servidor:
 
-```
+```bash
 service isc-dhcpd start
 ```
 
 No arquivo `dhcpd.conf`, que fica no caminho `/usr/local/etc/dhcpd.conf foi alterado:
 
-```
+```bash
 authoritative;
 ddns-update-style none;
 
@@ -113,7 +120,7 @@ host client-machine {
 
 Essas alterações foram feitas para que a máquina 10.0.0.1 funcionasse como um servidor DHCP para as máquinas que se conectam à rede local, por isso, no arquivo foi setada a máscara da subrede, que é 255.255.0.0/16, o range que seria aplicado para as máquinas que se conectassem a rede.
 
-Além disso, também foi setado um host, que seria a máquina de teste de um dos integrantes do grupo, para a máquina com o MAC address descrito em hardware ethernet, para essa máquina específica foi setado o IP 10.0.0.150;
+Além disso, também foi configurado um host, que seria a máquina de teste de um dos integrantes do grupo, para a máquina com o MAC address descrito em hardware ethernet, para essa máquina específica foi configuradp o IP 10.0.0.150;
 
 ### dhcpd.leases
 
@@ -121,6 +128,9 @@ O histórico de leases do servidor dhcp são salvos em um arquivo dentro do var/
 
 ```
 root@freedsd:/var/d/dhcpd # cat dhcpd.leases
+```
+
+```bash
 # The format of this file is documented in the dhopd. leases(5) manual page. -
 dhopd. leases. 1717766712 dhcpd.leases™
 # This lease file was written by isc-dhop-4.4.3-P1
@@ -155,38 +165,52 @@ Para testes de conexão na rede local configurada, os seguintes comandos foram e
 
 1. Da máquina de teste para a máquina do LDS:
 
-```
+```bash
 ping 10.0.0.1
 
 ```
 
 2. Da máquina do LDS para a máquina local:
 
-```
+```bash
 ping 10.0.0.150
 
 ```
 
-Que foi o IP setado para a máquina de teste pelo DHCP;
+Que foi o IP configurado para a máquina de teste pelo DHCP;
 
 3. Da máquina de teste para o roteador:
 
-```
+```bash
 ping 192.168.133.1
 ```
 
 4. Utilização do tcpdump para testar e analisar os logs do UDP com DHCP:
 
-```
+```bash
 pkg install tcpdump
 ```
 
 E para verificar os logs da captura de pacotes via UDP:
 
-```
+```bash
 tcpdump -ni rl0 udp
 ```
 
 Por meio disso, foi possível visualizar o host da máquina de teste ao conectar o cabo de que a máquina rede, onde o servidor dhcp identifica a entrada da máquina e coloca o ip 10.0.0.150 para a máquina. É um teste interessante, pois atualiza o log no momento em que a máquina entra e sai da rede local.
 
 ![tcpdump2](/fotos/tcpdump2.jpeg)
+
+Além disso, é possível rodar alguns comandos que trarão informações sobre a rede:
+
+- O ifconfig trará as configurações das interfaces de rede configuradas.
+
+```bash
+ifconfig
+```
+
+- O netstat trará as informações do monitoramento de conexões à rede. No caso, a flag "-a" mostra as conexões ativas.
+
+```bash
+netstat -a
+```
